@@ -55,16 +55,26 @@ class SandboxService:
         timeout_seconds = settings.test_timeout_seconds
 
         # Build clean environment without leaking host credentials or API keys
+        env_pythonpath = os.pathsep.join([str(workspace_dir.resolve())] + sys.path)
         clean_env = {
             "SYSTEMROOT": os.environ.get("SYSTEMROOT", "C:\\Windows"),
             "PATH": os.environ.get("PATH", ""),
-            "PYTHONPATH": str(workspace_dir.resolve()),
+            "PYTHONPATH": env_pythonpath,
             "PYTHONUNBUFFERED": "1"
         }
 
-        # Resolve python executable from virtualenv if available
+        # Resolve pytest executable or use sys.executable with sys.path
         venv_python = Path(sys.executable).parent / "pytest.exe"
-        exec_cmd = [str(venv_python)] if venv_python.exists() else [sys.executable, "-m", "pytest"]
+        if venv_python.exists():
+            exec_cmd = [str(venv_python)]
+        else:
+            # Run pytest directly through Python with current sys.path
+            runner_code = (
+                "import sys, pytest; "
+                f"sys.path.insert(0, {repr(str(workspace_dir.resolve()))}); "
+                "sys.exit(pytest.main([]))"
+            )
+            exec_cmd = [sys.executable, "-c", runner_code]
         
         timed_out = False
         try:
