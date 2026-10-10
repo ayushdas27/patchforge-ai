@@ -50,10 +50,15 @@ async def create_task(
 
     if repo_source == "bundled":
         source_dir = RepositoryService.get_bundled_repo_path()
+        if not source_dir.exists():
+            # In serverless bundled location might be relative to app root
+            alt_path = Path(__file__).parent.parent.parent / "sample_repos" / "buggy_python_demo"
+            source_dir = alt_path if alt_path.exists() else source_dir
         repo_name = "buggy_python_demo"
     elif repo_source == "uploaded_zip" and zip_file:
         zip_bytes = await zip_file.read()
-        temp_repo = Path(__file__).parent.parent.parent.parent / "workspaces" / f"upload_{task_id}"
+        import tempfile
+        temp_repo = Path(tempfile.gettempdir()) / "patchforge_workspaces" / f"upload_{task_id}"
         RepositoryService.extract_zip_safely(zip_bytes, temp_repo)
         source_dir = temp_repo
         repo_name = zip_file.filename or "uploaded_repo"

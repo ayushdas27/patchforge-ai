@@ -21,7 +21,8 @@ class SandboxService:
     @staticmethod
     def prepare_disposable_workspace(source_repo_dir: Path, task_id: str) -> Path:
         """Copies source repo into an isolated disposable sandbox directory."""
-        workspace_base = Path(__file__).parent.parent.parent.parent / "workspaces" / f"task_{task_id}"
+        import tempfile
+        workspace_base = Path(tempfile.gettempdir()) / "patchforge_workspaces" / f"task_{task_id}"
         workspace_base.parent.mkdir(parents=True, exist_ok=True)
         if workspace_base.exists():
             shutil.rmtree(workspace_base, ignore_errors=True)
